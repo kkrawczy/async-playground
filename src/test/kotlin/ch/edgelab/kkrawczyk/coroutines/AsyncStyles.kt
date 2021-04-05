@@ -1,15 +1,24 @@
-import ch.edgelab.kkrawczyk.coroutines.common.doHttpCallAsync
+package ch.edgelab.kkrawczyk.coroutines.common
+
+import ch.edgelab.kkrawczyk.coroutines.common.Classes.Data
+import ch.edgelab.kkrawczyk.coroutines.common.Classes.Input
+import ch.edgelab.kkrawczyk.coroutines.common.Classes.Output
+import ch.edgelab.kkrawczyk.coroutines.common.Classes.Token
 import reactor.core.publisher.Mono
 import java.util.concurrent.CompletableFuture
-import kotlin.coroutines.Continuation
-import kotlin.coroutines.CoroutineContext
 
 
-data class Token(val s: String)
-data class Response(val s: String)
-data class Input(val s: String)
-data class Output(val s: String) {
-    fun addValues(s: String) {}
+/*
+presenting different asynchronous programming styles
+ */
+
+object Classes {
+    data class Token(val s: String)
+    data class Data(val s: String)
+    data class Input(val s: String)
+    data class Output(val s: String) {
+        fun addValues(s: String) {}
+    }
 }
 
 object Blocking {
@@ -27,12 +36,12 @@ object Blocking {
         return Token("")
     }
 
-    private fun callHttpEndpoint(token: Token, input: Input): Response {
+    private fun callHttpEndpoint(token: Token, input: Input): Data {
         //call http endpoint
-        return Response("")
+        return Data("")
     }
 
-    private fun prepareOutput(response: Response): Output {
+    private fun prepareOutput(data: Data): Output {
         //some business logic and output
         return Output("output")
     }
@@ -51,10 +60,10 @@ object Callbacks {
 
     private fun requestToken(cb: (Token) -> Any) {}
 
-    private fun callHttpEndpoint(token: Any, input: Input, cb: (Response) -> Any) {}
+    private fun callHttpEndpoint(token: Any, input: Input, cb: (Data) -> Any) {}
 
-    private fun prepareOutput(response: Response, output: Output) {
-        output.addValues(response.s);
+    private fun prepareOutput(data: Data, output: Output) {
+        output.addValues(data.s);
     }
 }
 
@@ -75,17 +84,17 @@ object Futures {
         TODO("Not yet implemented")
     }
 
-    private fun callHttpEndpoint(it: Token, input: Input): CompletableFuture<Response> {
+    private fun callHttpEndpoint(it: Token, input: Input): CompletableFuture<Data> {
         TODO("Not yet implemented")
     }
 
-    private fun prepareOutput(response: Response): CompletableFuture<Output> {
+    private fun prepareOutput(data: Data): CompletableFuture<Output> {
         TODO("Not yet implemented")
     }
 }
 
 object Reactive {
-    //type of Futures
+    //type of ch.edgelab.kkrawczyk.coroutines.common.Futures
     fun handleRequest(input: Input): Mono<Output> {
         return requestToken()
             .flatMap { token -> callHttpEndpoint(token, input) }
@@ -93,20 +102,17 @@ object Reactive {
     }
 
     private fun requestToken(): Mono<Token> = Mono.empty()
-    private fun callHttpEndpoint(token: Token, input: Input): Mono<Response> = Mono.empty()
-    private fun prepareOutput(response: Response): Mono<Output> = Mono.empty()
+    private fun callHttpEndpoint(token: Token, input: Input): Mono<Data> = Mono.empty()
+    private fun prepareOutput(data: Data): Mono<Output> = Mono.empty()
 }
 
 object Coroutines {
     //hides the complexity of async code
     //easy to do loops
     suspend fun handleRequest(input: Input): Output {
-        //label 1
         val token: String = requestToken()
-        //label 2
-        val response: Response = callHttpEndpoint(token, input)
-        //label 3
-        val output: Output = prepareOutput(response)
+        val data: Data = callHttpEndpoint(token, input)
+        val output: Output = prepareOutput(data)
 
         return output
     }
@@ -115,81 +121,12 @@ object Coroutines {
         return doHttpCallAsync("token")
     }
 
-    suspend fun callHttpEndpoint(token: String, input: Input): Response {
-        return Response(doHttpCallAsync(input.s))
+    suspend fun callHttpEndpoint(token: String, input: Input): Data {
+        return Data(doHttpCallAsync(input.s))
     }
 
-    fun prepareOutput(response: Response): Output {
+    fun prepareOutput(data: Data): Output {
         //prepare output
-        return Output(response.s)
+        return Output(data.s)
     }
 }
-
-object TransformedCoroutines {
-
-    fun handleRequest(input: Input, cont: Continuation<Any>) {
-        //state machine
-        class InnerContinuation(
-            val outsideContinuation: Continuation<Any>
-        ) : Continuation<Any> {
-            var label: Int = 0
-            lateinit var input: Input
-            lateinit var token: Token
-            lateinit var response: Response
-
-            override val context: CoroutineContext
-                get() = TODO("Not yet implemented")
-
-            override fun resumeWith(result: Result<Any>) {
-                if (result.getOrThrow() is Token) token = result.getOrThrow() as Token
-                if (result.getOrThrow() is Response) response = result.getOrThrow() as Response
-                handleRequest(input, this)
-            }
-        }
-
-        val continuation = cont as? InnerContinuation ?: InnerContinuation(cont)
-
-
-        when (continuation.label) {
-            0 -> {
-                continuation.input = input
-                continuation.label = 1
-                requestTokenTransformed(cont)
-            }
-            1 -> {
-                val item = continuation.input
-                val token = continuation.token
-                continuation.label = 2
-                doCallTransformed(token, item, cont)
-            }
-            2 -> {
-                val response = continuation.response
-                println(response)
-                continuation.outsideContinuation.resumeWith(Result.success(""))
-            }
-        }
-    }
-
-    fun requestTokenTransformed(cont: Continuation<Any>) {
-        //do some job, when ready go back to continuation
-
-        val value = Token("token")
-        cont.resumeWith(Result.success(value))
-    }
-
-    fun doCallTransformed(token: Token, input: Input, cont: Continuation<Any>) {
-        //do some job, when ready go back to continuation
-
-
-        val value = Response("response")
-        cont.resumeWith(Result.success(value))
-    }
-
-    fun prepareOutput(response: Response): Output {
-        return Output(response.s)
-    }
-
-}
-
-
-
