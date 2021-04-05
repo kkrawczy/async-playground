@@ -24,6 +24,8 @@ private val logger = KotlinLogging.logger {}
 /*
 Example presenting how coroutines can handle async operations without using promises or callbacks directly in the code.
 TLDR; suspended functions are transformed into something like state machines objects that control the execution of the method.
+https://labs.pedrofelix.org/guides/kotlin/coroutines/coroutines-and-state-machines
+https://www.youtube.com/watch?v=YrrUCSi72E8
  */
 
 @ExtendWith(WireMockExtension::class)
