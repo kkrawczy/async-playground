@@ -22,8 +22,8 @@ data class Output(val s: String)
 private val logger = KotlinLogging.logger {}
 
 /*
-Example presenting how coroutines can handle async operations without of using promises or callbacks directly in the code.
-TLDR; coroutine are transformed during compilation into callbacks-like code.
+Example presenting how coroutines can handle async operations without using promises or callbacks directly in the code.
+TLDR; suspended functions are transformed into something like state machines objects that control the execution of the method.
  */
 
 @ExtendWith(WireMockExtension::class)
