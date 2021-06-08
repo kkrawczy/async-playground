@@ -12,6 +12,7 @@ class EchoClient {
 
     init {
         client = SocketChannel.open(InetSocketAddress("localhost", 8080))
+        client.configureBlocking(false)
         buffer = ByteBuffer.allocate(8192)
     }
 
