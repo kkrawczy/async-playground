@@ -57,7 +57,7 @@ class Server(host: String, port: Int) {
     private fun read(key: SelectionKey) {
         val socketChannel = key.channel() as SocketChannel
         buffer.clear()
-        socketChannel.read(this.buffer)
+        socketChannel.read(buffer)
         buffer.flip()
         val request = StandardCharsets.UTF_8.decode(buffer).toString()
         val response = processRequest(request)
@@ -78,8 +78,7 @@ class Server(host: String, port: Int) {
         socketChannel.finishConnect()
         socketChannel.close()
     }
-
-
+    
     private fun processRequest(request: String): String {
         logger.info { "Received request: \n$request" }
         //request processing and response
