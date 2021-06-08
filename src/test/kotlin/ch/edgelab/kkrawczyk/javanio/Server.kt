@@ -11,6 +11,11 @@ import java.nio.channels.spi.SelectorProvider
 import java.nio.charset.StandardCharsets
 
 //http://rox-xmlrpc.sourceforge.net/niotut/
+//https://www.baeldung.com/java-nio-selector
+//http://tutorials.jenkov.com/java-nio/non-blocking-server.html
+//https://github.com/netty/netty/issues/2515
+//https://jvns.ca/blog/2017/06/03/async-io-on-linux--select--poll--and-epoll/
+//https://news.ycombinator.com/item?id=8526264
 class Server {
     val host = "localhost"
     val port = 9090
@@ -36,7 +41,7 @@ class Server {
                 val key = selectedKeys.next()
                 selectedKeys.remove()
 
-                logger.info { "key $key" }
+                //logger.info { "key $key" }
                 when {
                     key.isAcceptable -> accept(key)
                     key.isReadable -> read(key)
@@ -47,9 +52,32 @@ class Server {
     }
 
     private fun write(key: SelectionKey) {
-        val socketChannel = key.channel() as SocketChannel
+        Thread.sleep(100)
+//        val date: LocalDateTime? = (key.attachment() as LocalDateTime?)
+//        if (date == null) {
+//            key.attach(LocalDateTime.now())
+//            return
+//        } else {
+//            if (Duration.between(date, LocalDateTime.now()).toMillis() < 10000)
+//                return
+//        }
 
+        val socketChannel = key.channel() as SocketChannel
+        val response = """
+            HTTP/1.1 200 OK
+            Date: Wed, 11 Apr 2012 21:29:04 GMT
+            Server: Python/6.6.6 (custom)
+            Content-Type: text/html
+
+            <html><body>Hello World</body></html>\n
+        """.trimIndent()
+
+        dataToWrite.clear()
+        dataToWrite.put(response.toByteArray())
+        dataToWrite.flip()
         socketChannel.write(dataToWrite)
+        socketChannel.finishConnect()
+        socketChannel.close()
     }
 
     private fun read(key: SelectionKey) {
@@ -58,31 +86,24 @@ class Server {
         val readCode = socketChannel.read(this.readBuffer)
         if (readCode == -1) {
             key.channel().close()
-            key.cancel()
         }
-        
+
         readBuffer.flip()
 
         val s = StandardCharsets.UTF_8.decode(readBuffer).toString()
         logger.info { "Received request:" }
         logger.info { s }
+        socketChannel.register(selector, SelectionKey.OP_WRITE)
 
-        val response = """
-            HTTP/1.1 200 OK
-            Date: Wed, 11 Apr 2012 21:29:04 GMT
-            Server: Python/6.6.6 (custom)
-            Content-Type: text/html
-            
-            <html><body>Hello World</body></html>\n
-        """.trimIndent()
-        readBuffer.clear()
-        readBuffer.put(response.encodeToByteArray())
-        println("${readBuffer.position()} ${readBuffer.limit()}")
-        readBuffer.flip()
-        println("${readBuffer.position()} ${readBuffer.limit()}")
-        socketChannel.write(readBuffer)
-        key.channel().close()
+//        readBuffer.clear()
+//        readBuffer.put(response.encodeToByteArray())
+//        println("${readBuffer.position()} ${readBuffer.limit()}")
+//        readBuffer.flip()
+//        println("${readBuffer.position()} ${readBuffer.limit()}")
+//        socketChannel.write(readBuffer)
+//        key.channel().close()
     }
+
 
     private fun accept(key: SelectionKey) {
         logger.info { "accepting" }
