@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets
 //https://github.com/netty/netty/issues/2515
 //https://jvns.ca/blog/2017/06/03/async-io-on-linux--select--poll--and-epoll/
 //https://news.ycombinator.com/item?id=8526264
+//https://www.oreilly.com/library/view/java-nio/0596002882/ch01.html
 class Server(host: String, port: Int) {
     private var buffer: ByteBuffer = ByteBuffer.allocate(8192)
     private val selector: Selector
@@ -60,6 +61,7 @@ class Server(host: String, port: Int) {
         socketChannel.read(buffer)
         buffer.flip()
         val request = StandardCharsets.UTF_8.decode(buffer).toString()
+        if (request.isNotFinished()) return
         val response = processRequest(request)
         //scheduler.submit(new Handler(request, socketChannel));
 
@@ -78,7 +80,7 @@ class Server(host: String, port: Int) {
         socketChannel.finishConnect()
         socketChannel.close()
     }
-    
+
     private fun processRequest(request: String): String {
         logger.info { "Received request: \n$request" }
         //request processing and response
@@ -92,6 +94,8 @@ class Server(host: String, port: Int) {
                 """.trimIndent()
     }
 }
+
+private fun String.isNotFinished() = false
 
 private val logger = KotlinLogging.logger {}
 
